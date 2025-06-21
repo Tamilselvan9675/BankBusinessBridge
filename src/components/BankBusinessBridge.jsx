@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { motion, useAnimation } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { IconPaths } from "./ColoredIcons"; // <- Your SVG icons here
+import { IconPaths } from "./ColoredIcons";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -56,6 +56,7 @@ export default function BankBusinessBridge() {
   const blockRef = useRef(null);
   const animationControl = useAnimation();
 
+  // Fade in cards when in view
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -70,9 +71,13 @@ export default function BankBusinessBridge() {
     return () => observer.disconnect();
   }, [animationControl]);
 
+  // SVG Animation on Scroll
   useEffect(() => {
+    const pathsPerIcon = [];
+
     cardDetails.forEach((card, index) => {
       const paths = document.querySelectorAll(`.icon-${index} path`);
+      const iconPaths = [];
 
       paths.forEach((path) => {
         const length = path.getTotalLength();
@@ -83,28 +88,51 @@ export default function BankBusinessBridge() {
           stroke: "#A8A8A8",
           fill: "none",
           strokeWidth: 2.3,
-          filter: "drop-shadow(0 0 20px ${card.color}) hue-rotate(360deg)",
+          filter: "drop-shadow(0 0 20px ${card.color}) hue-rotate(360deg)"
         });
 
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: `.icon-${index}`,
-            start: "top 85%",
-            toggleActions: "play none none reverse",
-          },
-        });
-
-        // Draw line with glow
-        tl.to(path, {
-          strokeDashoffset: 0,
-          stroke: card.color,
-          filter: `drop-shadow(0 0 20px ${card.color}) hue-rotate(360deg)`,
-          duration: 2,
-          ease: "power2.out",
-        });
-
-        
+        iconPaths.push({ path, length, color: card.color });
       });
+
+      pathsPerIcon.push(iconPaths);
+    });
+
+    const totalSteps = 7; // 7 scroll steps for 6 icons
+
+    gsap.to({}, {
+      scrollTrigger: {
+        trigger: blockRef.current,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 1,
+        onUpdate: (self) => {
+          const scrollStep = Math.floor(self.progress * totalSteps);
+
+          for (let i = 0; i < cardDetails.length; i++) {
+            const iconPaths = pathsPerIcon[i];
+            const shouldBeActive = i < scrollStep;
+
+            // Toggle grayscale class on parent
+            const iconContainer = document.querySelector(`.icon-${i}`);
+            if (iconContainer) {
+              iconContainer.classList.toggle("grayscale", !shouldBeActive);
+            }
+
+            iconPaths.forEach(({ path, length, color }) => {
+              gsap.to(path, {
+  strokeDashoffset: shouldBeActive ? 0 : length,
+  stroke: shouldBeActive ? color : "#A8A8A8",
+  strokeWidth: 2.3,
+  filter: shouldBeActive
+    ? `drop-shadow(0 0 20px ${color}) hue-rotate(360deg)`
+    : "none",
+  duration: 1.5,
+  ease: "power2.out",
+});
+            });
+          }
+        },
+      },
     });
   }, []);
 
@@ -129,7 +157,9 @@ export default function BankBusinessBridge() {
             animate={animationControl}
             custom={index}
           >
-            <div className={`icon-${index} w-full h-40 mb-6`}>
+            <div
+              className={`icon-${index} w-full h-40 mb-6 grayscale transition-all duration-500`}
+            >
               {IconPaths[index].svg}
             </div>
             <h3 className="text-sm font-semibold text-center mb-3 leading-snug text-gray-800">
