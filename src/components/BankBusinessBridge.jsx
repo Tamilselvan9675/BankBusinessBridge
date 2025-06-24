@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { motion, useAnimation } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { IconPaths } from "./ColoredIcons";
@@ -24,7 +23,7 @@ const cardDetails = [
   },
   {
     name: "One-To-Many Automated Disbursements",
-    desc: "Real-time payment processing with streamlined and API driven payouts",
+    desc: "API-driven, scalable disbursement across many endpoints",
     color: "#EA4335",
   },
   {
@@ -34,142 +33,105 @@ const cardDetails = [
   },
   {
     name: "New Revenue Streams",
-    desc: "Enable banks to launch innovative business lines, expand digital portfolios, and enjoy new revenue streams",
+    desc: "Enable banks to launch innovative business lines",
     color: "#00B8D4",
   },
 ];
 
-const itemFade = {
-  hidden: { opacity: 0, y: 40 },
-  visible: (index) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: index * 0.2,
-      duration: 0.5,
-      ease: "easeOut",
-    },
-  }),
-};
-
 export default function BankBusinessBridge() {
   const blockRef = useRef(null);
-  const animationControl = useAnimation();
 
-  // Fade in cards when in view
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          animationControl.start("visible");
-        }
-      },
-      { threshold: 0.3 }
-    );
-    const refCurrent = blockRef.current;
-    if (refCurrent) observer.observe(refCurrent);
-    return () => observer.disconnect();
-  }, [animationControl]);
+ useEffect(() => {
+  const totalSteps = cardDetails.length;
 
-  // SVG Animation on Scroll
-  useEffect(() => {
-    const pathsPerIcon = [];
+  cardDetails.forEach((card, index) => {
+    const path = document.querySelector(`.icon-${index} .icon-path`);
+    if (!path) return;
 
-    cardDetails.forEach((card, index) => {
-      const paths = document.querySelectorAll(`.icon-${index} path`);
-      const iconPaths = [];
+    
+    path.style.stroke = "#A8A8A8"; 
+    path.style.filter = "grayscale(100%) ";
+    path.style.strokeWidth = "3.1";
+    path.style.transition = "stroke 0.3s ease, filter 0.3s ease";
+    
+  });
 
-      paths.forEach((path) => {
-        const length = path.getTotalLength();
+  // Scroll animation setup
+  gsap.to({}, {
+    scrollTrigger: {
+      trigger: blockRef.current,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 0.5,
+      markers: false,
+      onUpdate: (self) => {
+        const progress = self.progress;
 
-        gsap.set(path, {
-          strokeDasharray: length,
-          strokeDashoffset: length,
-          stroke: "#A8A8A8",
-          fill: "none",
-          strokeWidth: 2.3,
-          filter: "drop-shadow(0 0 20px ${card.color}) hue-rotate(360deg)"
-        });
+        cardDetails.forEach((card, index) => {
+          const icon = document.querySelector(`.icon-${index}`);
+          const path = icon?.querySelector(".icon-path");
+          if (!path) return;
 
-        iconPaths.push({ path, length, color: card.color });
-      });
+          const length = path.getTotalLength();
+          const startProgress = index / totalSteps;
+          const endProgress = (index + 1) / totalSteps;
 
-      pathsPerIcon.push(iconPaths);
-    });
-
-    const totalSteps = 7; // 7 scroll steps for 6 icons
-
-    gsap.to({}, {
-      scrollTrigger: {
-        trigger: blockRef.current,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 1,
-        onUpdate: (self) => {
-          const scrollStep = Math.floor(self.progress * totalSteps);
-
-          for (let i = 0; i < cardDetails.length; i++) {
-            const iconPaths = pathsPerIcon[i];
-            const shouldBeActive = i < scrollStep;
-
-            // Toggle grayscale class on parent
-            const iconContainer = document.querySelector(`.icon-${i}`);
-            if (iconContainer) {
-              iconContainer.classList.toggle("grayscale", !shouldBeActive);
-            }
-
-            iconPaths.forEach(({ path, length, color }) => {
-              gsap.to(path, {
-  strokeDashoffset: shouldBeActive ? 0 : length,
-  stroke: shouldBeActive ? color : "#A8A8A8",
-  strokeWidth: 2.3,
-  filter: shouldBeActive
-    ? `drop-shadow(0 0 20px ${color}) hue-rotate(360deg)`
-    : "none",
-  duration: 1.5,
-  ease: "power2.out",
-});
-            });
+          let localProgress = 0;
+          if (progress <= startProgress) {
+            localProgress = 0;
+          } else if (progress >= endProgress) {
+            localProgress = 1;
+          } else {
+            localProgress = (progress - startProgress) / (endProgress - startProgress);
           }
-        },
+
+          const currentColor = gsap.utils.interpolate("#A8A8A8", card.color, localProgress);
+          const glow = `drop-shadow(0px 0px 10px ${card.color})`;
+          const filter = `grayscale(${100 - localProgress * 100}%) ${localProgress > 0.6 ? glow : ''}`;
+          const dashOffset = length * (1 - localProgress);
+
+          gsap.set(path, {
+            stroke: currentColor,
+            filter: filter,
+            strokeDashoffset: dashOffset,
+          });
+        });
       },
-    });
-  }, []);
+    },
+  });
+}, []);
+
 
   return (
-    <section ref={blockRef} className="bg-white py-20 px-6 md:px-28">
-      <div className="text-center mb-20">
-        <h2 className="text-black text-4xl md:text-5xl font-bold mb-5 leading-tight">
-          Bridging Banks and Businesses
-        </h2>
-        <p className="text-gray-600 text-lg max-w-3xl mx-auto leading-relaxed">
-          At Minnal, we power merchants acquiring enterprise-grade SaaS technology that transforms how banks and merchants handle payments. Our AI-driven platform delivers high-TPS solutions for seamless payins and payouts.
-        </p>
-      </div>
+    <section ref={blockRef} className="bg-white relative h-[600vh] py-10 px-6 md:px-28">
+      <div className="sticky top-0">
+        <div className="text-center">
+          <h2 className="text-black text-4xl md:text-5xl font-bold mb-5 leading-tight">
+            Bridging Banks and Businesses
+          </h2>
+          <p className="text-gray-600 text-lg max-w-3xl mx-auto leading-relaxed">
+            At Minnal, we power enterprise-grade SaaS technology that transforms how banks and merchants handle payments.
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        {cardDetails.map((card, index) => (
-          <motion.div
-            key={index}
-            className="bg-gray-50 border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-lg transition-shadow duration-300"
-            variants={itemFade}
-            initial="hidden"
-            animate={animationControl}
-            custom={index}
-          >
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {cardDetails.map((card, index) => (
             <div
-              className={`icon-${index} w-full h-40 mb-6 grayscale transition-all duration-500`}
+              key={index}
+              className="bg-gray-50 border border-gray-200 rounded-3xl p-8 shadow-md hover:shadow-xl transition-shadow duration-300"
             >
-              {IconPaths[index].svg}
+              <div className={`icon-${index} w-full h-40 mb-6`}>
+                {IconPaths[index].svg}
+              </div>
+              <h3 className="text-sm font-semibold text-center mb-3 leading-snug text-gray-800">
+                {card.name}
+              </h3>
+              <p className="text-gray-600 text-sm text-center leading-relaxed">
+                {card.desc}
+              </p>
             </div>
-            <h3 className="text-sm font-semibold text-center mb-3 leading-snug text-gray-800">
-              {card.name}
-            </h3>
-            <p className="text-gray-600 text-sm text-center leading-relaxed">
-              {card.desc}
-            </p>
-          </motion.div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
