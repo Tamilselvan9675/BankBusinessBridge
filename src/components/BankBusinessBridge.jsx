@@ -51,7 +51,7 @@ export default function BankBusinessBridge() {
     
     path.style.stroke = "#A8A8A8"; 
     path.style.filter = "grayscale(100%) ";
-    path.style.strokeWidth = "1.5";
+    path.style.strokeWidth = "2.5";
     path.style.transition = "stroke 0.3s ease, filter 0.3s ease";
     
   });
@@ -86,7 +86,7 @@ export default function BankBusinessBridge() {
           }
 
           const currentColor = gsap.utils.interpolate("#A8A8A8", card.color, localProgress);
-          const glow = `drop-shadow(0px 0px 5px ${card.color})`;
+          const glow = `drop-shadow(0px 0px 10px ${card.color})`;
           const filter = `grayscale(${100 - localProgress * 100}%) ${localProgress > 0.6 ? glow : ''}`;
           const dashOffset = length * (1 - localProgress);
 
